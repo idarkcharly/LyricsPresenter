@@ -1,0 +1,110 @@
+<!-- projection.html
+     Esta es la ventana de proyección, lo que ve el público.
+     Aquí solo se muestra el texto y el fondo, sin controles ni menús.
+-->
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Proyección</title>
+    <style>
+        @font-face {
+            font-family: 'Montserrat';
+            src: url('./fonts/Montserrat-ExtraBold.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: #000;
+            color: #fff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .bg img,
+        .bg video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 6vh;
+        }
+
+        .text {
+            font-family: 'Montserrat', system-ui;
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.18;
+            text-shadow: 0 0 28px rgba(0, 0, 0, .85);
+            font-size: 5vh;
+            transition: opacity .6s ease;
+            opacity: 1;
+        }
+
+        .hidden .text {
+            opacity: 0;
+        }
+
+        .fade-animated span {
+            display: inline-block;
+            opacity: 0;
+            filter: blur(4px);
+            animation: fade-in var(--fade-duration, 0.8s) var(--fade-delay, 0.1s) forwards cubic-bezier(0.11, 0, 0.5, 0);
+        }
+
+        .fade-animated {
+            animation: scale var(--scale-duration, 3s) forwards cubic-bezier(0.5, 1, 0.89, 1);
+            transform: scale(0.94);
+        }
+
+        @keyframes scale {
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fade-in {
+            100% {
+                opacity: 1;
+                filter: blur(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stage" id="stage">
+        <div class="bg" id="bg"></div>
+        <div class="overlay">
+            <div id="text" class="text"></div>
+        </div>
+    </div>
+    <script src="projection_renderer.js"></script>
+</body>
+
+</html>
