@@ -41,7 +41,6 @@
             user-select: none;
         }
 
-        /* Pero sí puedes seleccionar/cortar/copiar en el editor */
         #tab-editor,
         #tab-editor * {
             user-select: text !important;
@@ -221,7 +220,6 @@
         /* Vista previa de la proyección */
         #previewText {
             font-size: 3vh;
-            /* Más pequeño que la proyección */
             line-height: 1.1;
             font-family: inherit;
         }
@@ -235,7 +233,7 @@
         <div style="display:flex;gap:8px;align-items:center">
             <select id="displaySelect"></select>
             <button id="btnOpenProj">Abrir proyección</button>
-            <button id="btnToggleVis">Ocultar/Mostrar (Esc)</button>
+            <button id="btnToggleVis">Oculto (Esc)</button>
             <button id="btnPrev">↑</button>
             <button id="btnNext">↓</button>
         </div>
@@ -272,7 +270,6 @@
                 <textarea id="editor"
                     placeholder="Escribe la letra aquí. Usa '§' para salto manual de línea."></textarea>
                 <div class="tools">
-                    <button id="btnBuild">Procesar líneas</button>
                     <button id="btnSave">Guardar</button>
                     <button id="btnNew">Nuevo</button>
                 </div>

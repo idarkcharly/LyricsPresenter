@@ -7,7 +7,7 @@
         library: [],
         activeSongId: null,
         activeLineIndex: -1,
-        hidden: false,
+        hidden: true,
         currentBgURL: null,
         currentBgIsVideo: false,
         fontSizeVh: 5,
@@ -27,7 +27,6 @@
         songTitle: document.getElementById("songTitle"),
         btnSave: document.getElementById("btnSave"),
         btnNew: document.getElementById("btnNew"),
-        btnBuild: document.getElementById("btnBuild"),
         lineByLine: document.getElementById("lineByLine"),
         previewText: document.getElementById("previewText"),
         previewBg: document.getElementById("previewBg"),
@@ -57,9 +56,36 @@
         }[s]));
     }
 
+    function showToast(msg) {
+        const toast = document.createElement("div");
+        toast.textContent = msg;
+        toast.style.position = "fixed";
+        toast.style.bottom = "20px";
+        toast.style.right = "20px";
+        toast.style.background = "var(--accent)";
+        toast.style.color = "#000";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.zIndex = "9999";
+        toast.style.boxShadow = "0 4px 12px rgba(0,0,0,0.5)";
+        toast.style.fontWeight = "bold";
+        toast.style.pointerEvents = "none";
+        toast.style.transition = "opacity 0.3s";
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 300);
+        }, 2700);
+    }
+
     async function init() {
         const lib = await window.api.storeGet();
         state.library = Array.isArray(lib) ? lib : [];
+        els.btnToggleVis.textContent = state.hidden ? "Oculto (Esc)" : "En vivo (Esc)";
+        if (!state.hidden) {
+            els.btnToggleVis.style.background = "#ef4444";
+            els.btnToggleVis.style.color = "#ffffff";
+        }
         renderSongList();
         setupTabs();
         bindUI();
@@ -108,7 +134,7 @@
         els.songTitle.removeAttribute("disabled");
         els.editor.focus();
         renderSongList(els.search.value);
-        if (andProcess) buildLinesAndRender();
+        if (andProcess) renderLines(getEditorLinesRaw());
     }
 
     function getEditorLinesRaw() {
@@ -116,19 +142,6 @@
         return raw.split("\n");
     }
 
-    function buildLinesAndRender() {
-        const lines = getEditorLinesRaw();
-        renderLines(lines);
-        if (state.activeSongId) {
-            const idx = state.library.findIndex(x => x.id === state.activeSongId);
-            if (idx > -1) {
-                state.library[idx].title = els.songTitle.value || state.library[idx].title;
-                state.library[idx].lines = lines;
-                window.api.storeSet(state.library);
-                renderSongList(els.search.value);
-            }
-        }
-    }
 
     function renderLines(lines) {
         state.activeLineIndex = -1;
@@ -211,6 +224,7 @@
                     if (state.currentBgURL) {
                         window.api.sendToProjection({ type: "setBackground", url: state.currentBgURL, isVideo: !!state.currentBgIsVideo });
                     }
+                    window.api.sendToProjection({ type: "toggleVisibility", hidden: state.hidden });
                     window.api.sendToProjection({ type: "setFontSize", vh: state.fontSizeVh });
                     window.api.sendToProjection({ type: "setAnim", enabled: state.animEnabled, fade: state.animFadeDuration, scale: state.animScaleDuration });
                     if (state.activeLineIndex !== -1) projectLine(state.activeLineIndex);
@@ -243,6 +257,8 @@
             }
             window.api.storeSet(state.library);
             renderSongList(els.search.value);
+            renderLines(lines);
+            showToast("Guardado y actualizado en proyección.");
         });
 
         els.btnNew?.addEventListener("click", () => {
@@ -252,7 +268,6 @@
             updatePreview("");
         });
 
-        els.btnBuild?.addEventListener("click", buildLinesAndRender);
         els.search?.addEventListener("input", (e) => renderSongList(e.target.value));
 
         els.bgFileInput?.addEventListener("change", (e) => {
@@ -271,9 +286,9 @@
             const content = JSON.stringify(exportArray, null, 2);
             try {
                 const saved = await window.api.saveFile("Biblioteca.json", content);
-                if (saved) alert("Biblioteca exportada: " + saved);
+                if (saved) showToast("Biblioteca exportada: " + saved);
             } catch (err) {
-                alert("Error al exportar: " + (err && err.message ? err.message : err));
+                showToast("Error al exportar: " + (err && err.message ? err.message : err));
             }
         });
 
@@ -285,8 +300,8 @@
             input.addEventListener("change", async (ev) => {
                 const files = Array.from(ev.target.files || []);
                 const added = await importFiles(files);
-                if (added > 0) alert(`Importadas ${added} archivo(s).`);
-                else alert("No se importó ninguna canción (archivos vacíos o formato no reconocido).");
+                if (added > 0) showToast(`Importadas ${added} canciones.`);
+                else showToast("No se importó ninguna canción (archivos vacíos o formato no reconocido).");
                 input.value = "";
             });
             input.click();
@@ -339,24 +354,31 @@
             return added;
         }
 
+        document.addEventListener("dragenter", (e) => {
+            if (e.dataTransfer.types && e.dataTransfer.types.includes("Files")) e.preventDefault();
+        }, true);
         document.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-        });
+            if (e.dataTransfer.types && e.dataTransfer.types.includes("Files")) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+            }
+        }, true);
         document.addEventListener("drop", async (e) => {
-            e.preventDefault();
             const dtFiles = e.dataTransfer.files;
             if (!dtFiles || dtFiles.length === 0) return;
+            e.preventDefault();
             const added = await importFiles(Array.from(dtFiles));
-            if (added > 0) alert(`Importadas ${added} archivo(s) desde drag & drop.`);
-        });
+            if (added > 0) {
+                showToast(`Importadas ${added} canciones desde drag & drop.`);
+            }
+        }, true);
 
         els.jsonFileInput?.addEventListener("change", async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const added = await importFiles([file]);
-            if (added > 0) alert(`Importadas ${added} canción(es).`);
-            else alert("No se importó ninguna canción del JSON.");
+            if (added > 0) showToast(`Importadas ${added} canciónes.`);
+            else showToast("No se importó ninguna canción del JSON.");
             e.target.value = "";
         });
 
@@ -448,7 +470,14 @@
     function toggleVisibility() {
         state.hidden = !state.hidden;
         window.api.sendToProjection({ type: "toggleVisibility", hidden: state.hidden });
-        els.btnToggleVis.textContent = state.hidden ? "Oculto" : "Ocultar/Mostrar (Esc)";
+        els.btnToggleVis.textContent = state.hidden ? "Oculto (Esc)" : "En vivo (Esc)";
+        if (!state.hidden) {
+            els.btnToggleVis.style.background = "#ef4444";
+            els.btnToggleVis.style.color = "#ffffff";
+        } else {
+            els.btnToggleVis.style.background = "";
+            els.btnToggleVis.style.color = "";
+        }
     }
 
     function nextLine(delta) {
