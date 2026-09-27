@@ -10,7 +10,7 @@ Incluye un **panel de control** y una **ventana de proyección.**
 - 📝 **Editor de letras** con procesamiento línea por línea.  
 - 🖥️ **Proyección en monitor secundario**, con fondo de **imagen o video**.  
 - 🌈 **Animaciones opcionales** y ajuste dinámico del **tamaño de fuente**.  
-- 📂 **Importar y exportar** biblioteca en formato **JSON** o **texto plano**.  
+- 📂 **Importar y exportar** la biblioteca completa o canciones individuales en formato **JSON**; también admite importar **texto plano**.  
 - ⚙️ **Interfaz moderna**, oscura y minimalista.
 
 ---

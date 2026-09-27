@@ -5,7 +5,10 @@
 (() => {
     let state = {
         library: [],
+        exportSongIds: new Set(),
         activeSongId: null,
+        projectedSongId: null,
+        projectedLines: [],
         activeLineIndex: -1,
         hidden: true,
         currentBgURL: null,
@@ -34,6 +37,7 @@
         bgFileInput: document.getElementById("bgFile"),
         btnClearBg: document.getElementById("btnClearBg"),
         btnExport: document.getElementById("btnExport"),
+        selectAllSongs: document.getElementById("selectAllSongs"),
         btnImport: document.getElementById("btnImport"),
         btnClearLib: document.getElementById("btnClearLib"),
         btnFontInc: document.getElementById("btnFontInc"),
@@ -116,12 +120,39 @@
         items.forEach(s => {
             const div = document.createElement("div");
             div.tabIndex = 0;
-            div.textContent = `${s.title} (${s.lines ? s.lines.length : 0})`;
+            div.className = "song-item";
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = state.exportSongIds.has(s.id);
+            checkbox.setAttribute("aria-label", `Exportar ${s.title || "Sin título"}`);
+            checkbox.addEventListener("click", e => e.stopPropagation());
+            checkbox.addEventListener("dblclick", e => e.stopPropagation());
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) state.exportSongIds.add(s.id);
+                else state.exportSongIds.delete(s.id);
+                updateExportSelection();
+            });
+            const label = document.createElement("span");
+            label.className = "song-label";
+            label.textContent = s.title || "Sin título";
             if (s.id === state.activeSongId) div.classList.add("active");
             div.addEventListener("click", () => selectSong(s.id, false));
             div.addEventListener("dblclick", () => selectSong(s.id, true));
+            div.append(checkbox, label);
             list.appendChild(div);
         });
+        updateExportSelection();
+    }
+
+    function updateExportSelection() {
+        const selectedCount = state.exportSongIds.size;
+        const totalCount = state.library.length;
+        els.selectAllSongs.checked = totalCount > 0 && selectedCount === totalCount;
+        els.selectAllSongs.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+    }
+
+    function getExportSongs() {
+        return state.library.filter(song => state.exportSongIds.has(song.id));
     }
 
     function selectSong(id, andProcess) {
@@ -134,7 +165,11 @@
         els.songTitle.removeAttribute("disabled");
         els.editor.focus();
         renderSongList(els.search.value);
-        if (andProcess) renderLines(getEditorLinesRaw());
+        if (andProcess) {
+            state.projectedSongId = id;
+            state.projectedLines = getEditorLinesRaw();
+            renderLines(state.projectedLines);
+        }
     }
 
     function getEditorLinesRaw() {
@@ -174,7 +209,7 @@
     }
 
     function projectLine(i) {
-        const lines = getEditorLinesRaw();
+        const lines = getProjectionLines();
         if (!lines.length) return;
         if (i < 0) i = 0;
         if (i >= lines.length) i = lines.length - 1;
@@ -182,6 +217,10 @@
         updatePreview(text);
         window.api.sendToProjection({ type: "setLine", text });
         highlightLine(i);
+    }
+
+    function getProjectionLines() {
+        return state.projectedSongId ? state.projectedLines : getEditorLinesRaw();
     }
 
     function updatePreview(text) {
@@ -257,8 +296,8 @@
             }
             window.api.storeSet(state.library);
             renderSongList(els.search.value);
-            renderLines(lines);
-            showToast("Guardado y actualizado en proyección.");
+            if (!state.projectedSongId) renderLines(lines);
+            showToast("Guardado correctamente");
         });
 
         els.btnNew?.addEventListener("click", () => {
@@ -270,6 +309,15 @@
 
         els.search?.addEventListener("input", (e) => renderSongList(e.target.value));
 
+        els.selectAllSongs?.addEventListener("change", () => {
+            if (els.selectAllSongs.checked) {
+                state.library.forEach(song => state.exportSongIds.add(song.id));
+            } else {
+                state.exportSongIds.clear();
+            }
+            renderSongList(els.search.value);
+        });
+
         els.bgFileInput?.addEventListener("change", (e) => {
             const f = e.target.files[0]; if (f) setBackgroundFromFile(f); e.target.value = "";
         });
@@ -279,14 +327,22 @@
         });
 
         els.btnExport?.addEventListener("click", async () => {
-            const exportArray = state.library.map(s => ({
+            const songs = getExportSongs();
+            if (songs.length === 0) {
+                showToast("Marca al menos una canción para exportarla.");
+                return;
+            }
+            const exportArray = songs.map(s => ({
                 titulo: s.title || "Sin título",
                 letra: Array.isArray(s.lines) ? s.lines : []
             }));
             const content = JSON.stringify(exportArray, null, 2);
+            const defaultName = songs.length === 1
+                ? `${(songs[0].title || "Cancion").replace(/[\\/:*?"<>|]/g, "_").trim() || "Cancion"}.json`
+                : "Canciones seleccionadas.json";
             try {
-                const saved = await window.api.saveFile("Biblioteca.json", content);
-                if (saved) showToast("Biblioteca exportada: " + saved);
+                const saved = await window.api.saveFile(defaultName, content, songs.length === 1 ? "Exportar canción" : "Exportar canciones seleccionadas");
+                if (saved) showToast(`${songs.length === 1 ? "Canción" : "Canciones seleccionadas"} exportada${songs.length === 1 ? "" : "s"}: ${saved}`);
             } catch (err) {
                 showToast("Error al exportar: " + (err && err.message ? err.message : err));
             }
@@ -384,7 +440,7 @@
 
         els.btnClearLib?.addEventListener("click", () => {
             if (!confirm("Vaciar biblioteca?")) return;
-            state.library = []; state.activeSongId = null; window.api.storeSet(state.library);
+            state.library = []; state.exportSongIds.clear(); state.activeSongId = null; state.projectedSongId = null; state.projectedLines = []; window.api.storeSet(state.library);
             renderSongList(); els.editor.value = ""; els.songTitle.value = ""; els.lineByLine.innerHTML = ""; updatePreview("");
         });
 
@@ -481,7 +537,7 @@
     }
 
     function nextLine(delta) {
-        const lines = getEditorLinesRaw();
+        const lines = getProjectionLines();
         if (lines.length === 0) return;
         let i = state.activeLineIndex;
         if (i === -1) i = 0;

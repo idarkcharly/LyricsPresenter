@@ -22,5 +22,5 @@ contextBridge.exposeInMainWorld("api", {
     onFromProjectionRequestToggle: (cb) => ipcRenderer.on("projection-request-toggle", cb),
 
     // Guarda un archivo usando el diálogo nativo (main.js hace el trabajo)
-    saveFile: (defaultName, content) => ipcRenderer.invoke("save-file", { defaultName, content })
+    saveFile: (defaultName, content, title) => ipcRenderer.invoke("save-file", { defaultName, content, title })
 });

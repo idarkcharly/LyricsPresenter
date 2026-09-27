@@ -145,10 +145,10 @@ ipcMain.handle('list-displays', () => {
 ipcMain.handle('store-get', () => store.get());
 ipcMain.handle('store-set', (event, data) => store.set(data));
 
-ipcMain.handle('save-file', async (event, { defaultName, content }) => {
+ipcMain.handle('save-file', async (event, { defaultName, content, title }) => {
     try {
         const res = await dialog.showSaveDialog({
-            title: 'Exportar biblioteca',
+            title: title || 'Exportar biblioteca',
             defaultPath: defaultName || 'Biblioteca.json',
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
