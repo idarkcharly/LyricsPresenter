@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("api", {
     storeSet: (data) => ipcRenderer.invoke("store-set", data),
     // Obtener la lista de monitores conectados
     listDisplays: () => ipcRenderer.invoke("list-displays"),
+    // Obtener la fuente de captura de la ventana de proyección
+    getProjectionSource: () => ipcRenderer.invoke("get-projection-source"),
     // Abrir la ventana de proyección en el monitor seleccionado
     openProjection: (displayId) => ipcRenderer.send("open-projection", displayId),
     // Cerrar la ventana de proyección

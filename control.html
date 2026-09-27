@@ -131,6 +131,14 @@
             object-fit: cover
         }
 
+        .preview .capture {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: none;
+            background: #000;
+        }
+
         .preview .overlay {
             position: absolute;
             inset: 0;
@@ -339,7 +347,10 @@
                 <button id="btnExport">Exportar</button>
                 <button id="btnClearLib">Vaciar biblioteca</button>
             </div>
-            <div class="footer-hint">Un click: cargar en el editor de texto. Doble click: Cargar en el proyector.</div>
+            <div class="footer-hint">
+                <div>Un click: cargar en el editor de texto.</div>
+                <div>Doble click: cargar en el proyector.</div>
+            </div>
         </section>
 
         <!-- Panel central: editor y proyector (tabs) -->
@@ -379,6 +390,7 @@
                 <div class="overlay">
                     <div class="text" id="previewText">Sin proyección</div>
                 </div>
+                <video class="capture" id="previewCapture" autoplay muted playsinline></video>
             </div>
 
             <div class="tools">

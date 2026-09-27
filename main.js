@@ -142,6 +142,11 @@ ipcMain.handle('list-displays', () => {
     }));
 });
 
+ipcMain.handle('get-projection-source', () => {
+    if (!projectionWindow || projectionWindow.isDestroyed()) return null;
+    return projectionWindow.getMediaSourceId();
+});
+
 ipcMain.handle('store-get', () => store.get());
 ipcMain.handle('store-set', (event, data) => store.set(data));
 

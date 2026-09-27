@@ -33,6 +33,7 @@
         lineByLine: document.getElementById("lineByLine"),
         previewText: document.getElementById("previewText"),
         previewBg: document.getElementById("previewBg"),
+        previewCapture: document.getElementById("previewCapture"),
         btnBg: document.getElementById("btnBg"),
         bgFileInput: document.getElementById("bgFile"),
         btnClearBg: document.getElementById("btnClearBg"),
@@ -51,6 +52,8 @@
         btnAnimSpeedDown: document.getElementById("btnAnimSpeedDown"),
         btnAnimSpeedUp: document.getElementById("btnAnimSpeedUp")
     };
+
+    let projectionCaptureStream = null;
 
     function uid() { return Math.random().toString(36).slice(2, 9); }
 
@@ -115,6 +118,7 @@
         const items = state.library.filter(s => (s.title || "").toLowerCase().includes(filter.toLowerCase()));
         if (items.length === 0) {
             list.innerHTML = '<div style="opacity:.7">Sin canciones</div>';
+            updateExportSelection();
             return;
         }
         items.forEach(s => {
@@ -149,6 +153,7 @@
         const totalCount = state.library.length;
         els.selectAllSongs.checked = totalCount > 0 && selectedCount === totalCount;
         els.selectAllSongs.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+        els.btnClearLib.textContent = selectedCount > 0 ? "Eliminar selección" : "Vaciar biblioteca";
     }
 
     function getExportSongs() {
@@ -250,6 +255,44 @@
         window.api.sendToProjection({ type: "setBackground", url, isVideo });
     }
 
+    async function startProjectionCapture() {
+        try {
+            const sourceId = await window.api.getProjectionSource();
+            if (!sourceId) throw new Error("La ventana de proyección aún no está disponible.");
+            if (!navigator.mediaDevices?.getUserMedia) throw new Error("La captura multimedia no está disponible.");
+
+            stopProjectionCapture();
+            projectionCaptureStream = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: {
+                    mandatory: {
+                        chromeMediaSource: "desktop",
+                        chromeMediaSourceId: sourceId
+                    }
+                }
+            });
+            els.previewCapture.srcObject = projectionCaptureStream;
+            els.previewCapture.style.display = "block";
+            await els.previewCapture.play();
+        } catch (err) {
+            stopProjectionCapture();
+            console.warn("No se pudo capturar la ventana de proyección", err);
+            showToast("No se pudo activar la vista previa en vivo.");
+        }
+    }
+
+    function stopProjectionCapture() {
+        if (projectionCaptureStream) {
+            projectionCaptureStream.getTracks().forEach(track => track.stop());
+            projectionCaptureStream = null;
+        }
+        if (els.previewCapture) {
+            els.previewCapture.pause();
+            els.previewCapture.srcObject = null;
+            els.previewCapture.style.display = "none";
+        }
+    }
+
     function bindUI() {
         let projectionOpen = false;
 
@@ -260,6 +303,7 @@
                 els.btnOpenProj.textContent = "Cerrar proyección";
                 projectionOpen = true;
                 setTimeout(() => {
+                    startProjectionCapture();
                     if (state.currentBgURL) {
                         window.api.sendToProjection({ type: "setBackground", url: state.currentBgURL, isVideo: !!state.currentBgIsVideo });
                     }
@@ -276,6 +320,7 @@
         });
 
         window.api.onProjectionClosed?.(() => {
+            stopProjectionCapture();
             els.btnOpenProj.textContent = "Abrir proyección";
             projectionOpen = false;
         });
@@ -439,9 +484,40 @@
         });
 
         els.btnClearLib?.addEventListener("click", () => {
-            if (!confirm("Vaciar biblioteca?")) return;
-            state.library = []; state.exportSongIds.clear(); state.activeSongId = null; state.projectedSongId = null; state.projectedLines = []; window.api.storeSet(state.library);
-            renderSongList(); els.editor.value = ""; els.songTitle.value = ""; els.lineByLine.innerHTML = ""; updatePreview("");
+            const selectedIds = new Set(state.exportSongIds);
+            const hasSelection = selectedIds.size > 0;
+            const message = hasSelection ? "¿Eliminar canciones seleccionadas?" : "¿Vaciar biblioteca?";
+            if (!confirm(message)) return;
+
+            if (hasSelection) {
+                state.library = state.library.filter(song => !selectedIds.has(song.id));
+                state.exportSongIds.clear();
+
+                if (selectedIds.has(state.activeSongId)) {
+                    state.activeSongId = null;
+                    els.editor.value = "";
+                    els.songTitle.value = "";
+                    els.lineByLine.innerHTML = "";
+                }
+                if (selectedIds.has(state.projectedSongId)) {
+                    state.projectedSongId = null;
+                    state.projectedLines = [];
+                    updatePreview("");
+                }
+            } else {
+                state.library = [];
+                state.exportSongIds.clear();
+                state.activeSongId = null;
+                state.projectedSongId = null;
+                state.projectedLines = [];
+                els.editor.value = "";
+                els.songTitle.value = "";
+                els.lineByLine.innerHTML = "";
+                updatePreview("");
+            }
+
+            window.api.storeSet(state.library);
+            renderSongList();
         });
 
         els.btnFontInc?.addEventListener("click", () => adjustFontSize(1));
