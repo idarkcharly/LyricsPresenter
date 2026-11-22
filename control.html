@@ -171,45 +171,52 @@
         }
 
         #songList .song-item:has(input:checked) {
-            background: rgba(37, 99, 235, 0.12);
-            border-left-color: rgba(96, 165, 250, 0.7)
+            background: rgba(14, 165, 233, 0.09);
+            border-left-color: rgba(34, 211, 238, 0.65)
         }
 
         #songList input[type="checkbox"],
         .library-select-all input[type="checkbox"] {
             appearance: none;
             display: block;
-            width: 14px !important;
-            height: 14px !important;
-            min-width: 14px !important;
-            max-width: 14px !important;
-            min-height: 14px !important;
-            max-height: 14px !important;
-            flex: 0 0 14px;
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            max-width: 16px !important;
+            min-height: 16px !important;
+            max-height: 16px !important;
+            flex: 0 0 16px;
             box-sizing: border-box;
             margin: 0;
-            border: 1px solid rgba(148, 163, 184, 0.65);
-            border-radius: 3px;
-            background: rgba(15, 23, 42, 0.35);
-            flex: 0 0 auto;
+            border: 1.5px solid rgba(100, 130, 160, 0.4);
+            border-radius: 50%;
+            background: rgba(11, 18, 34, 0.5);
             cursor: pointer;
-            position: relative
+            position: relative;
+            transition: border-color 0.18s, background 0.18s, box-shadow 0.18s
+        }
+
+        #songList input[type="checkbox"]:hover,
+        .library-select-all input[type="checkbox"]:hover {
+            border-color: rgba(34, 211, 238, 0.55);
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08)
         }
 
         #songList input[type="checkbox"]:checked,
         .library-select-all input[type="checkbox"]:checked {
-            border-color: #60a5fa;
-            background: #2563eb
+            border-color: var(--accent);
+            background: radial-gradient(circle at 40% 40%, #38bdf8, #0ea5e9);
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18)
         }
 
         #songList input[type="checkbox"]:checked::after,
         .library-select-all input[type="checkbox"]:checked::after {
             content: "";
             position: absolute;
-            width: 3px;
-            height: 7px;
-            left: 4px;
-            top: 1px;
+            width: 4px;
+            height: 8px;
+            left: 5px;
+            top: 2px;
             border: solid #fff;
             border-width: 0 2px 2px 0;
             transform: rotate(45deg)
