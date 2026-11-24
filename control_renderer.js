@@ -30,6 +30,9 @@
         songTitle: document.getElementById("songTitle"),
         btnSave: document.getElementById("btnSave"),
         btnNew: document.getElementById("btnNew"),
+        btnUpper: document.getElementById("btnUpper"),
+        btnLower: document.getElementById("btnLower"),
+        btnInsertBreak: document.getElementById("btnInsertBreak"),
         lineByLine: document.getElementById("lineByLine"),
         previewText: document.getElementById("previewText"),
         previewBg: document.getElementById("previewBg"),
@@ -166,8 +169,6 @@
         state.activeSongId = id;
         els.songTitle.value = s.title;
         els.editor.value = (s.lines || []).join("\n");
-        els.editor.removeAttribute("disabled");
-        els.songTitle.removeAttribute("disabled");
         els.editor.focus();
         renderSongList(els.search.value);
         if (andProcess) {
@@ -180,6 +181,43 @@
     function getEditorLinesRaw() {
         const raw = els.editor.value.replace(/\r\n?/g, "\n");
         return raw.split("\n");
+    }
+
+    function insertInEditor(text) {
+        const el = els.editor;
+        el.focus();
+        if (!document.execCommand("insertText", false, text)) {
+            el.setRangeText(text, el.selectionStart, el.selectionEnd, "end");
+        }
+    }
+
+    function changeEditorCase(mode) {
+        const el = els.editor;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const hasSelection = end > start;
+        const source = hasSelection ? el.value.slice(start, end) : el.value;
+        const converted = mode === "upper"
+            ? source.toLocaleUpperCase("es")
+            : source.toLocaleLowerCase("es");
+
+        el.focus();
+        if (!hasSelection) el.setSelectionRange(0, el.value.length);
+
+        if (document.execCommand("insertText", false, converted)) {
+            // Conservar la selección o la posición del cursor tras la conversión
+            if (hasSelection) el.setSelectionRange(start, start + converted.length);
+            else el.setSelectionRange(start, start);
+            return;
+        }
+
+        if (hasSelection) {
+            el.setRangeText(converted, start, end, "select");
+        } else {
+            el.value = converted;
+            el.setSelectionRange(start, start);
+        }
+        el.focus();
     }
 
 
@@ -351,6 +389,15 @@
             renderSongList();
             updatePreview("");
         });
+
+        // Mantener el foco y la selección del editor al usar estas acciones
+        [els.btnUpper, els.btnLower, els.btnInsertBreak].forEach(btn => {
+            btn?.addEventListener("mousedown", e => e.preventDefault());
+        });
+
+        els.btnUpper?.addEventListener("click", () => changeEditorCase("upper"));
+        els.btnLower?.addEventListener("click", () => changeEditorCase("lower"));
+        els.btnInsertBreak?.addEventListener("click", () => insertInEditor("§"));
 
         els.search?.addEventListener("input", (e) => renderSongList(e.target.value));
 
@@ -550,6 +597,20 @@
                 e.preventDefault();
                 toggleVisibility();
                 return;
+            }
+
+            if (isEditor && (e.ctrlKey || e.metaKey)) {
+                const key = e.key.toLowerCase();
+                if (key === "z") {
+                    e.preventDefault();
+                    document.execCommand(e.shiftKey ? "redo" : "undo");
+                    return;
+                }
+                if (key === "y") {
+                    e.preventDefault();
+                    document.execCommand("redo");
+                    return;
+                }
             }
 
             if (isEditor) return;

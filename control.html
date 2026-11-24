@@ -18,11 +18,20 @@
             box-sizing: border-box
         }
 
+        html,
+        body {
+            height: 100%
+        }
+
         body {
             margin: 0;
             font-family: system-ui, Segoe UI, Roboto;
             background: var(--bg-dark);
             color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden
         }
 
         /* Por defecto, no se puede seleccionar texto en la app */
@@ -47,6 +56,7 @@
         }
 
         header {
+            flex: 0 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -77,17 +87,29 @@
         }
 
         .container {
+            flex: 1 1 auto;
             display: grid;
-            grid-template-columns: 280px 1fr 36%;
+            grid-template-columns: 280px minmax(0, 1fr) 36%;
             gap: 12px;
-            padding: 12px
+            padding: 12px;
+            min-height: 0
         }
 
         .panel {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
             background: var(--panel);
             padding: 12px;
             border-radius: 12px;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45)
+        }
+
+        .panel>h3 {
+            flex: 0 0 auto;
+            margin: 0 0 10px
         }
 
         .tabs {
@@ -154,6 +176,13 @@
             text-shadow: 0 0 28px rgba(0, 0, 0, 0.85);
             font-size: 5vh;
             transition: opacity .4s
+        }
+
+        #songList {
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-top: 8px;
+            overflow: auto
         }
 
         #songList div {
@@ -248,6 +277,12 @@
             background: rgba(34, 211, 238, 0.08)
         }
 
+        #lineByLine {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto
+        }
+
         #lineByLine div {
             padding: 8px;
             border-bottom: 1px solid var(--border);
@@ -277,6 +312,69 @@
             font-size: 11px;
             line-height: 1.15;
             white-space: normal
+        }
+
+        .tabview {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0
+        }
+
+        #songTitle {
+            flex: 0 0 auto;
+            margin-bottom: 12px
+        }
+
+        #tab-editor .editor-tools {
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border)
+        }
+
+        #tab-editor .editor-tools button {
+            padding: 4px 7px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.5;
+            border-radius: 6px;
+            color: #b6c2d4;
+            background: rgba(255, 255, 255, 0.04);
+            transition: background .15s, color .15s
+        }
+
+        #tab-editor .editor-tools button:hover {
+            background: rgba(34, 211, 238, 0.14);
+            color: var(--accent)
+        }
+
+        #tab-editor .editor-tools .btn-icon {
+            min-width: 26px;
+            padding: 4px 0;
+            font-size: 14px;
+            font-weight: 700
+        }
+
+        #tab-editor .editor-tools .btn-primary {
+            background: rgba(34, 211, 238, 0.16);
+            color: var(--accent)
+        }
+
+        #tab-editor .editor-tools .btn-primary:hover {
+            background: rgba(34, 211, 238, 0.26)
+        }
+
+        #tab-editor .tools-spacer {
+            flex: 1 1 auto
+        }
+
+        #tab-editor textarea {
+            flex: 1 1 auto;
+            height: auto;
+            min-height: 120px;
+            resize: none
         }
 
         textarea {
@@ -345,20 +443,16 @@
         <!-- Panel de biblioteca de canciones -->
         <section class="panel" id="libraryPanel">
             <h3>Biblioteca</h3>
-            <input id="search" placeholder="Buscar canción..." type="text" />
+            <input id="search" placeholder="Buscar canción..." type="text" spellcheck="false" />
             <label class="library-select-all">
                 <input id="selectAllSongs" type="checkbox" />
                 <span>Marcar toda la biblioteca</span>
             </label>
-            <div id="songList" style="margin-top:8px;max-height:60vh;overflow:auto"></div>
+            <div id="songList"></div>
             <div class="tools library-tools" style="margin-top:8px">
                 <button id="btnImport">Importar</button>
                 <button id="btnExport">Exportar</button>
                 <button id="btnClearLib">Vaciar biblioteca</button>
-            </div>
-            <div class="footer-hint">
-                <div>Un click: cargar en el editor de texto.</div>
-                <div>Doble click: cargar en el proyector.</div>
             </div>
         </section>
 
@@ -372,22 +466,25 @@
 
             <!-- Editor de letras: ocultamos por defecto -->
             <div id="tab-editor" class="tabview" style="display:none">
-                <h3>Editor §</h3>
-                <input id="songTitle" placeholder="Título de la canción..." type="text" />
-                <textarea id="editor"
-                    placeholder="Escribe la letra aquí. Usa '§' para salto manual de línea."></textarea>
-                <div class="tools">
-                    <button id="btnSave">Guardar</button>
+                <h3>Editor</h3>
+                <input id="songTitle" placeholder="Título de la canción..." type="text" spellcheck="false" />
+                <textarea id="editor" spellcheck="false"
+                    title="Ctrl+Z para deshacer · Ctrl+Y para rehacer"
+                    placeholder="Escribe aquí la letra de la canción..."></textarea>
+                <div class="tools editor-tools">
+                    <button id="btnUpper" class="btn-icon" title="Convertir la selección o todo el texto a mayúsculas" aria-label="Convertir a mayúsculas">A</button>
+                    <button id="btnLower" class="btn-icon" title="Convertir la selección o todo el texto a minúsculas" aria-label="Convertir a minúsculas">a</button>
+                    <button id="btnInsertBreak" class="btn-icon" title="Insertar un salto de línea manual (§) en la posición del cursor" aria-label="Insertar salto de línea">§</button>
+                    <span class="tools-spacer"></span>
+                    <button id="btnSave" class="btn-primary">Guardar</button>
                     <button id="btnNew">Nuevo</button>
                 </div>
             </div>
 
             <!-- Panel de líneas para proyectar: visible por defecto -->
-            <div id="tab-lines" class="tabview" style="display:block">
+            <div id="tab-lines" class="tabview">
                 <h3>Líneas</h3>
-                <div id="lineByLine" style="max-height:60vh;overflow:auto"></div>
-                <div class="footer-hint">Haz click en una línea para proyectarla. Doble clic para avanzar/acción rápida.
-                </div>
+                <div id="lineByLine"></div>
             </div>
         </section>
 
