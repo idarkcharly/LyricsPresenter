@@ -379,7 +379,17 @@
             }
             window.api.storeSet(state.library);
             renderSongList(els.search.value);
-            if (!state.projectedSongId) renderLines(lines);
+            // Si la canción guardada es la que está proyectada, actualizar líneas y proyector al instante
+            if (state.projectedSongId === state.activeSongId || !state.projectedSongId) {
+                const prevIdx = state.activeLineIndex;
+                state.projectedSongId = state.activeSongId;
+                state.projectedLines = lines;
+                renderLines(lines);
+                // Mantener la línea activa seleccionada si sigue siendo válida
+                if (prevIdx >= 0 && prevIdx < lines.length) {
+                    highlightLine(prevIdx);
+                }
+            }
             showToast("Guardado correctamente");
         });
 
@@ -609,6 +619,11 @@
                 if (key === "y") {
                     e.preventDefault();
                     document.execCommand("redo");
+                    return;
+                }
+                if (key === "s") {
+                    e.preventDefault();
+                    els.btnSave.click();
                     return;
                 }
             }
